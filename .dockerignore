@@ -1,0 +1,47 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Test
+coverage
+.nyc_output
+
+# Build artifacts
+dist
+build
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+docs
+
+# Database
+*.db
+*.sqlite
+
+# Prisma
+prisma/migrations/dev.db
+prisma/*.db

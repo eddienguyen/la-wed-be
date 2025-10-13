@@ -1,0 +1,25 @@
+# Render Blueprint Configuration
+# This file explicitly defines how Render should build and deploy the service
+
+services:
+  - type: web
+    name: la-wed-backend
+    runtime: node
+    region: singapore
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npm run prisma:generate
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        sync: false  # Managed in Render dashboard
+      - key: DIRECT_URL
+        sync: false  # Managed in Render dashboard
+      - key: CORS_ORIGIN
+        sync: false  # Managed in Render dashboard
+      - key: LOG_LEVEL
+        value: info

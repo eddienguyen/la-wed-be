@@ -1,30 +1,30 @@
-# Stage 1: Development
-FROM node:20.19.0-alpine AS development
+# Use Node.js LTS Alpine image
+FROM node:20.19.0-alpine
 
+# Set working directory
 WORKDIR /usr/src/app
 
-COPY package*.json ./
-
-RUN npm install
-
-COPY . .
-
-RUN npm run build
-
-# Stage 2: Production
-FROM node:20.19.0-alpine AS production
-
+# Set production environment
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
-WORKDIR /usr/src/app
-
+# Copy package files
 COPY package*.json ./
 
-RUN npm install --only=production
+# Install dependencies (including Prisma)
+RUN npm ci --only=production
 
-COPY . .
+# Copy Prisma schema
+COPY prisma ./prisma
 
-COPY --from=development /usr/src/app/dist ./dist
+# Generate Prisma Client
+RUN npx prisma generate
 
-CMD ["node", "dist/main"]
+# Copy application source code
+COPY src ./src
+
+# Expose port (Render will set PORT env variable)
+EXPOSE 3000
+
+# Start the application
+CMD ["node", "src/app.js"]
