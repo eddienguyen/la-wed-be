@@ -16,7 +16,13 @@
     "prisma:reset": "prisma migrate reset",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["wedding", "guest-management", "invitations", "express", "prisma"],
+  "keywords": [
+    "wedding",
+    "guest-management",
+    "invitations",
+    "express",
+    "prisma"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -24,6 +30,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "express-validator": "^7.2.1",
     "prisma": "^6.17.1",
     "uuid": "^13.0.0"
   },

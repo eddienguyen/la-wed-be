@@ -9,7 +9,7 @@ Backend API for the personalized wedding invitation system.
 - Node.js 18+ installed
 - npm or yarn package manager
 - Supabase account (free tier)
-- Railway account for deployment (free tier)
+- Render.com account for deployment (free tier)
 
 ### Setup Instructions
 
@@ -103,20 +103,34 @@ CREATE INDEX idx_guests_created_at ON guests(created_at);
 
 ## 🚀 Deployment
 
-### Railway Deployment
+### Render.com Deployment
 
-1. Create Railway account
-2. Connect GitHub repository
-3. Set environment variables in Railway dashboard
-4. Deploy automatically on push
+For complete deployment instructions, see [Render Deployment Guide](../docs/feature/32-render-deployment-guide.md).
+
+**Quick Steps:**
+1. Create Render.com account
+2. Create new "Web Service"
+3. Connect GitHub repository (la-wed-be)
+4. Configure:
+   - Root Directory: `backend`
+   - Build Command: `npm install && npm run prisma:generate`
+   - Start Command: `npm start`
+5. Add environment variables (see guide)
+6. Deploy
 
 ### Environment Variables for Production
 ```env
 NODE_ENV=production
-DATABASE_URL=your_production_database_url
-CORS_ORIGIN=https://yourdomain.com
+DATABASE_URL=postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+DIRECT_URL=postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
 PORT=3000
+CORS_ORIGIN=https://ngocquanwd.com
+LOG_LEVEL=info
 ```
+
+**Post-Deployment:**
+- Run migrations via Render Shell: `npm run prisma:migrate:deploy`
+- Test health endpoint: `https://[your-app].onrender.com/api/health`
 
 ## 🧪 Testing
 
@@ -190,7 +204,7 @@ curl http://localhost:3000/api/health/database
 - **Database**: PostgreSQL (Supabase)
 - **ORM**: Prisma
 - **Language**: JavaScript (ES Modules)
-- **Hosting**: Railway
+- **Hosting**: Render.com
 - **Development**: Nodemon
 
 ## 📖 Learning Resources
@@ -198,4 +212,4 @@ curl http://localhost:3000/api/health/database
 - [Express.js Documentation](https://expressjs.com/)
 - [Prisma Documentation](https://www.prisma.io/docs/)
 - [Supabase Documentation](https://supabase.com/docs)
-- [Railway Documentation](https://docs.railway.app/)
+- [Render Documentation](https://render.com/docs)

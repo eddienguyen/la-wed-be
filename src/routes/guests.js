@@ -1,0 +1,352 @@
+/**
+ * Guest Management Routes
+ * 
+ * REST API endpoints for CRUD operations on guests
+ */
+
+import express from 'express'
+import { body, param, query, validationResult } from 'express-validator'
+import { getPrismaClient } from '../utils/database.js'
+
+const router = express.Router()
+
+/**
+ * Validation Rules
+ */
+const validateCreateGuest = [
+  body('name')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Tên từ 2-100 ký tự'),
+  
+  body('venue')
+    .isIn(['hue', 'hanoi'])
+    .withMessage('Địa điểm hoặc "hue" hoặc "hanoi"'),
+  
+  body('secondaryNote')
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('Secondary note must be under 200 characters'),
+]
+
+const validateUpdateGuest = [
+  param('id').isUUID().withMessage('Invalid guest ID format'),
+  body('name')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Name must be between 2-100 characters'),
+  
+  body('venue')
+    .optional()
+    .isIn(['hue', 'hanoi'])
+    .withMessage('Venue must be either "hue" or "hanoi"'),
+  
+  body('secondaryNote')
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('Secondary note must be under 200 characters'),
+]
+
+/**
+ * POST /api/guests - Create new guest
+ */
+router.post('/', validateCreateGuest, async (req, res) => {
+  try {
+    // Check validation errors
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          details: errors.array(),
+        },
+      })
+    }
+
+    const prisma = getPrismaClient()
+    const { name, venue, secondaryNote, invitationImageUrl } = req.body
+
+    // Create guest record (ID will be auto-generated)
+    const guest = await prisma.guest.create({
+      data: {
+        name,
+        venue,
+        secondaryNote: secondaryNote || null,
+        invitationUrl: '', // Temporary placeholder
+        invitationImageUrl: invitationImageUrl || null,
+      },
+    })
+
+    // Generate unique invitation URL using the guest ID
+    const baseUrl = process.env.FRONTEND_URL || 'https://ngocquanwd.com'
+    const venueSlug = venue === 'hue' ? 'hue' : 'hn'
+    const invitationUrl = `${baseUrl}/${venueSlug}/${guest.id}`
+
+    // Update guest with the generated invitation URL
+    const updatedGuest = await prisma.guest.update({
+      where: { id: guest.id },
+      data: { invitationUrl },
+    })
+
+    console.log(`✅ Guest created: ${updatedGuest.id} - ${updatedGuest.name}`)
+    console.log(`📨 Invitation URL: ${invitationUrl}`)
+
+    res.status(201).json({
+      success: true,
+      data: updatedGuest,
+    })
+  } catch (error) {
+    console.error('Error creating guest:', error)
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to create guest',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      },
+    })
+  }
+})
+
+/**
+ * GET /api/guests - List all guests with pagination
+ * Note: This must come BEFORE /:id route to avoid path conflicts
+ */
+router.get('/', [
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1-100'),
+  query('venue').optional().isIn(['hue', 'hanoi']).withMessage('Invalid venue filter'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Invalid query parameters',
+          details: errors.array(),
+        },
+      })
+    }
+
+    const prisma = getPrismaClient()
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 20
+    const venue = req.query.venue
+    const skip = (page - 1) * limit
+
+    // Build filter
+    const where = venue ? { venue } : {}
+
+    // Get total count
+    const total = await prisma.guest.count({ where })
+
+    // Get paginated results
+    const guests = await prisma.guest.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    res.status(200).json({
+      success: true,
+      data: guests,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: skip + guests.length < total,
+      },
+    })
+  } catch (error) {
+    console.error('Error listing guests:', error)
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to list guests',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      },
+    })
+  }
+})
+
+/**
+ * GET /api/guests/:id - Get guest by ID
+ */
+router.get('/:id', [
+  param('id').isUUID().withMessage('Invalid guest ID format'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Invalid guest ID',
+          details: errors.array(),
+        },
+      })
+    }
+
+    const prisma = getPrismaClient()
+    const { id } = req.params
+
+    const guest = await prisma.guest.findUnique({
+      where: { id },
+    })
+
+    if (!guest) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'Guest not found',
+          guestId: id,
+        },
+      })
+    }
+
+    res.status(200).json({
+      success: true,
+      data: guest,
+    })
+  } catch (error) {
+    console.error('Error fetching guest:', error)
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch guest',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      },
+    })
+  }
+})
+
+/**
+ * PATCH /api/guests/:id - Update guest
+ */
+router.patch('/:id', validateUpdateGuest, async (req, res) => {
+  try {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          details: errors.array(),
+        },
+      })
+    }
+
+    const prisma = getPrismaClient()
+    const { id } = req.params
+    const updates = {}
+
+    // Only include provided fields
+    if (req.body.name !== undefined) updates.name = req.body.name
+    if (req.body.venue !== undefined) updates.venue = req.body.venue
+    if (req.body.secondaryNote !== undefined) updates.secondaryNote = req.body.secondaryNote
+    if (req.body.invitationImageUrl !== undefined) updates.invitationImageUrl = req.body.invitationImageUrl
+
+    // Check if guest exists
+    const exists = await prisma.guest.findUnique({ where: { id } })
+    if (!exists) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'Guest not found',
+          guestId: id,
+        },
+      })
+    }
+
+    // Update guest
+    const guest = await prisma.guest.update({
+      where: { id },
+      data: updates,
+    })
+
+    console.log(`✅ Guest updated: ${guest.id}`)
+
+    res.status(200).json({
+      success: true,
+      data: guest,
+    })
+  } catch (error) {
+    console.error('Error updating guest:', error)
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to update guest',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      },
+    })
+  }
+})
+
+/**
+ * DELETE /api/guests/:id - Delete guest
+ */
+router.delete('/:id', [
+  param('id').isUUID().withMessage('Invalid guest ID format'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Invalid guest ID',
+          details: errors.array(),
+        },
+      })
+    }
+
+    const prisma = getPrismaClient()
+    const { id } = req.params
+
+    // Check if guest exists
+    const exists = await prisma.guest.findUnique({ where: { id } })
+    if (!exists) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'Guest not found',
+          guestId: id,
+        },
+      })
+    }
+
+    // Delete guest
+    await prisma.guest.delete({
+      where: { id },
+    })
+
+    console.log(`✅ Guest deleted: ${id}`)
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: 'Guest deleted successfully',
+        guestId: id,
+      },
+    })
+  } catch (error) {
+    console.error('Error deleting guest:', error)
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to delete guest',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      },
+    })
+  }
+})
+
+export default router

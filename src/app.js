@@ -10,6 +10,7 @@ import express from 'express'
 import dotenv from 'dotenv'
 import corsMiddleware from './middleware/cors.js'
 import healthRoutes from './routes/health.js'
+import guestRoutes from './routes/guests.js'
 import { disconnectDatabase } from './utils/database.js'
 
 // Load environment variables
@@ -18,8 +19,15 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3000
 
+// Debug logging - BEFORE all middleware
+app.use((req, res, next) => {
+  console.log('🔍 INCOMING REQUEST:', req.method, req.url, req.headers.origin || 'no-origin')
+  next()
+})
+
 // Middleware
-app.use(corsMiddleware)
+// TEMPORARILY DISABLED CORS FOR DEBUGGING
+// app.use(corsMiddleware)
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 
@@ -33,6 +41,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // Routes
 app.use('/api/health', healthRoutes)
+app.use('/api/guests', guestRoutes)
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -44,7 +53,9 @@ app.get('/', (req, res) => {
       timestamp: new Date().toISOString(),
       endpoints: {
         health: '/api/health',
-        databaseHealth: '/api/health/database'
+        databaseHealth: '/api/health/database',
+        guests: '/api/guests',
+        guestById: '/api/guests/:id'
       }
     }
   })
