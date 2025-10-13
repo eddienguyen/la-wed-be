@@ -1,0 +1,32 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Guest {
+  id                 String   @id @default(uuid())
+  name               String   @db.VarChar(100)
+  secondaryNote      String?  @map("secondary_note") @db.VarChar(200)
+  venue              Venue
+  invitationUrl      String   @map("invitation_url") @db.VarChar(255)
+  invitationImageUrl String?  @map("invitation_image_url") @db.VarChar(255)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@index([venue])
+  @@index([createdAt])
+  @@map("guests")
+}
+
+enum Venue {
+  hue
+  hanoi
+}
