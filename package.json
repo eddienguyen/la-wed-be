@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/app.js",
     "start:prod": "NODE_ENV=production node src/app.js",
+    "build": "npm run prisma:generate",
     "dev": "nodemon src/app.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
