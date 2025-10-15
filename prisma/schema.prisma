@@ -17,7 +17,8 @@ model Guest {
   secondaryNote      String?  @map("secondary_note") @db.VarChar(200)
   venue              Venue
   invitationUrl      String   @map("invitation_url") @db.VarChar(255)
-  invitationImageUrl String?  @map("invitation_image_url") @db.VarChar(255)
+  invitationImageFrontUrl String?  @map("invitation_image_front_url") @db.VarChar(255)
+  invitationImageMainUrl String?  @map("invitation_image_main_url") @db.VarChar(255)
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 

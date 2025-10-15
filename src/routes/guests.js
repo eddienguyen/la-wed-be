@@ -1,12 +1,14 @@
 /**
  * Guest Management Routes
  * 
- * REST API endpoints for CRUD operations on guests
+ * REST API endpoints for CRUD operations on guests with image upload support
  */
 
 import express from 'express'
 import { body, param, query, validationResult } from 'express-validator'
 import { getPrismaClient } from '../utils/database.js'
+import { uploadMultiple, handleUploadError } from '../middleware/upload.js'
+import { imageService } from '../services/imageService.js'
 
 const router = express.Router()
 
@@ -51,9 +53,19 @@ const validateUpdateGuest = [
 ]
 
 /**
- * POST /api/guests - Create new guest
+ * POST /api/guests - Create new guest with optional image upload
+ * 
+ * Supports multipart/form-data with:
+ * - name (required)
+ * - venue (required)
+ * - secondaryNote (optional)
+ * - invitationImageFront (optional file)
+ * - invitationImageMain (optional file)
+ * 
+ * Uses 2-phase approach: Create guest first, then upload images.
+ * If image upload fails, guest record remains valid (graceful degradation).
  */
-router.post('/', validateCreateGuest, async (req, res) => {
+router.post('/', uploadMultiple, validateCreateGuest, async (req, res) => {
   try {
     // Check validation errors
     const errors = validationResult(req)
@@ -68,16 +80,17 @@ router.post('/', validateCreateGuest, async (req, res) => {
     }
 
     const prisma = getPrismaClient()
-    const { name, venue, secondaryNote, invitationImageUrl } = req.body
+    const { name, venue, secondaryNote } = req.body
 
-    // Create guest record (ID will be auto-generated)
+    // PHASE 1: Create guest record first (always succeeds)
     const guest = await prisma.guest.create({
       data: {
         name,
         venue,
         secondaryNote: secondaryNote || null,
         invitationUrl: '', // Temporary placeholder
-        invitationImageUrl: invitationImageUrl || null,
+        invitationImageFrontUrl: null,
+        invitationImageMainUrl: null,
       },
     })
 
@@ -86,19 +99,71 @@ router.post('/', validateCreateGuest, async (req, res) => {
     const venueSlug = venue === 'hue' ? 'hue' : 'hn'
     const invitationUrl = `${baseUrl}/${venueSlug}/${guest.id}`
 
-    // Update guest with the generated invitation URL
-    const updatedGuest = await prisma.guest.update({
-      where: { id: guest.id },
-      data: { invitationUrl },
-    })
-
-    console.log(`✅ Guest created: ${updatedGuest.id} - ${updatedGuest.name}`)
+    console.log(`✅ Guest created: ${guest.id} - ${guest.name}`)
     console.log(`📨 Invitation URL: ${invitationUrl}`)
 
-    res.status(201).json({
+    // PHASE 2: Try to upload images (graceful degradation on failure)
+    const imageUrls = {
+      invitationImageFrontUrl: null,
+      invitationImageMainUrl: null
+    }
+
+    const imageUploadWarnings = []
+
+    // Check if image service is configured
+    if (!imageService.isConfigured()) {
+      console.warn('⚠️ Image service not configured - skipping image upload')
+      imageUploadWarnings.push('Image storage not configured')
+    } else if (req.files) {
+      // Upload front image if provided
+      if (req.files.invitationImageFront && req.files.invitationImageFront[0]) {
+        try {
+          const frontFile = req.files.invitationImageFront[0]
+          const frontUrl = await imageService.uploadImage(frontFile, guest.id, venue, 'front')
+          imageUrls.invitationImageFrontUrl = frontUrl
+          console.log(`✅ Front image uploaded: ${frontUrl}`)
+        } catch (error) {
+          console.error('❌ Front image upload failed:', error.message)
+          imageUploadWarnings.push(`Front image upload failed: ${error.message}`)
+        }
+      }
+
+      // Upload main image if provided
+      if (req.files.invitationImageMain && req.files.invitationImageMain[0]) {
+        try {
+          const mainFile = req.files.invitationImageMain[0]
+          const mainUrl = await imageService.uploadImage(mainFile, guest.id, venue, 'main')
+          imageUrls.invitationImageMainUrl = mainUrl
+          console.log(`✅ Main image uploaded: ${mainUrl}`)
+        } catch (error) {
+          console.error('❌ Main image upload failed:', error.message)
+          imageUploadWarnings.push(`Main image upload failed: ${error.message}`)
+        }
+      }
+    }
+
+    // Update guest with invitation URL and image URLs (if any)
+    const updatedGuest = await prisma.guest.update({
+      where: { id: guest.id },
+      data: {
+        invitationUrl,
+        ...imageUrls
+      },
+    })
+
+    // Build response
+    const response = {
       success: true,
       data: updatedGuest,
-    })
+    }
+
+    // Add warnings if image upload failed
+    if (imageUploadWarnings.length > 0) {
+      response.warnings = imageUploadWarnings
+      response.message = 'Guest created successfully, but some images failed to upload'
+    }
+
+    res.status(201).json(response)
   } catch (error) {
     console.error('Error creating guest:', error)
     res.status(500).json({
@@ -252,7 +317,8 @@ router.patch('/:id', validateUpdateGuest, async (req, res) => {
     if (req.body.name !== undefined) updates.name = req.body.name
     if (req.body.venue !== undefined) updates.venue = req.body.venue
     if (req.body.secondaryNote !== undefined) updates.secondaryNote = req.body.secondaryNote
-    if (req.body.invitationImageUrl !== undefined) updates.invitationImageUrl = req.body.invitationImageUrl
+    if (req.body.invitationImageFrontUrl !== undefined) updates.invitationImageFrontUrl = req.body.invitationImageFrontUrl
+    if (req.body.invitationImageMainUrl !== undefined) updates.invitationImageMainUrl = req.body.invitationImageMainUrl
 
     // Check if guest exists
     const exists = await prisma.guest.findUnique({ where: { id } })
@@ -291,7 +357,7 @@ router.patch('/:id', validateUpdateGuest, async (req, res) => {
 })
 
 /**
- * DELETE /api/guests/:id - Delete guest
+ * DELETE /api/guests/:id - Delete guest and associated images
  */
 router.delete('/:id', [
   param('id').isUUID().withMessage('Invalid guest ID format'),
@@ -311,9 +377,9 @@ router.delete('/:id', [
     const prisma = getPrismaClient()
     const { id } = req.params
 
-    // Check if guest exists
-    const exists = await prisma.guest.findUnique({ where: { id } })
-    if (!exists) {
+    // Check if guest exists and get image URLs
+    const guest = await prisma.guest.findUnique({ where: { id } })
+    if (!guest) {
       return res.status(404).json({
         success: false,
         error: {
@@ -323,7 +389,18 @@ router.delete('/:id', [
       })
     }
 
-    // Delete guest
+    // Delete associated images from R2 (if any)
+    const imageUrls = [
+      guest.invitationImageFrontUrl,
+      guest.invitationImageMainUrl
+    ].filter(Boolean)
+
+    if (imageUrls.length > 0) {
+      console.log(`🗑️ Deleting ${imageUrls.length} image(s) for guest ${id}...`)
+      await imageService.deleteImages(imageUrls)
+    }
+
+    // Delete guest record from database
     await prisma.guest.delete({
       where: { id },
     })
