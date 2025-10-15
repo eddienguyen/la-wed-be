@@ -22,6 +22,8 @@ const PORT = process.env.PORT || 3000
 // Debug logging - BEFORE all middleware
 app.use((req, res, next) => {
   console.log('🔍 INCOMING REQUEST:', req.method, req.url, req.headers.origin || 'no-origin')
+  console.log('🔍 User-Agent:', req.headers['user-agent'])
+  console.log('🔍 Content-Type:', req.headers['content-type'])
   next()
 })
 
@@ -37,6 +39,16 @@ if (process.env.NODE_ENV === 'development') {
     next()
   })
 }
+
+// Response logging middleware for debugging
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  res.send = function (data) {
+    console.log('✅ RESPONSE:', res.statusCode, 'for', req.method, req.url);
+    return originalSend.call(this, data);
+  };
+  next();
+});
 
 // Routes
 app.use('/api/health', healthRoutes)

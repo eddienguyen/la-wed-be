@@ -65,11 +65,23 @@ const validateUpdateGuest = [
  * Uses 2-phase approach: Create guest first, then upload images.
  * If image upload fails, guest record remains valid (graceful degradation).
  */
-router.post('/', uploadMultiple, validateCreateGuest, async (req, res) => {
-  try {
+router.post(
+  '/',
+  uploadMultiple,
+  validateCreateGuest,
+  async (req, res, next) => {
+    try {
+    // Log detailed request information for debugging
+    console.log('🔍 [POST /api/guests] Request received from:', req.headers['user-agent'])
+    console.log('🔍 [POST /api/guests] Origin:', req.headers.origin)
+    console.log('🔍 [POST /api/guests] Content-Type:', req.headers['content-type'])
+    console.log('🔍 [POST /api/guests] Request body fields:', Object.keys(req.body))
+    console.log('🔍 [POST /api/guests] Files received:', req.files ? Object.keys(req.files) : 'none')
+    
     // Check validation errors
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
+      console.error('❌ [POST /api/guests] Validation failed:', errors.array())
       return res.status(400).json({
         success: false,
         error: {
@@ -249,8 +261,14 @@ router.get('/:id', [
   param('id').isUUID().withMessage('Invalid guest ID format'),
 ], async (req, res) => {
   try {
+    // Log detailed request information for debugging
+    console.log('🔍 [GET /api/guests/:id] Request received from:', req.headers['user-agent'])
+    console.log('🔍 [GET /api/guests/:id] Origin:', req.headers.origin)
+    console.log('🔍 [GET /api/guests/:id] Guest ID:', req.params.id)
+    
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
+      console.error('❌ [GET /api/guests/:id] Validation failed:', errors.array())
       return res.status(400).json({
         success: false,
         error: {
@@ -268,6 +286,7 @@ router.get('/:id', [
     })
 
     if (!guest) {
+      console.warn('⚠️ [GET /api/guests/:id] Guest not found:', id)
       return res.status(404).json({
         success: false,
         error: {
@@ -277,12 +296,13 @@ router.get('/:id', [
       })
     }
 
+    console.log('✅ [GET /api/guests/:id] Guest found:', guest.name)
     res.status(200).json({
       success: true,
       data: guest,
     })
   } catch (error) {
-    console.error('Error fetching guest:', error)
+    console.error('❌ [GET /api/guests/:id] Error fetching guest:', error)
     res.status(500).json({
       success: false,
       error: {
