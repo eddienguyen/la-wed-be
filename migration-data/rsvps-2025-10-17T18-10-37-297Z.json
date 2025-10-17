@@ -1,0 +1,24 @@
+[
+  {
+    "id": "08165164-2649-4dea-9bb2-4522d8a5f939",
+    "guestId": null,
+    "name": "Nguyễn Văn Test",
+    "guestCount": 3,
+    "willAttend": false,
+    "wishes": "Xin lỗi, tôi không thể tham dự",
+    "venue": "hue",
+    "createdAt": "2025-10-16T12:54:58.267Z",
+    "updatedAt": "2025-10-16T12:54:58.958Z"
+  },
+  {
+    "id": "a4ebfb22-a174-41d7-8cdc-271c54dfdbc7",
+    "guestId": null,
+    "name": "asdf asd asd f",
+    "guestCount": 1,
+    "willAttend": true,
+    "wishes": "saf sd fsd fd",
+    "venue": "hue",
+    "createdAt": "2025-10-16T17:17:40.370Z",
+    "updatedAt": "2025-10-16T17:17:40.370Z"
+  }
+]

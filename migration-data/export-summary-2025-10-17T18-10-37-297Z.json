@@ -1,0 +1,12 @@
+{
+  "exportDate": "2025-10-17T18:10:37.303Z",
+  "source": "Supabase",
+  "counts": {
+    "guests": 30,
+    "rsvps": 2
+  },
+  "files": {
+    "guests": "guests-2025-10-17T18-10-37-297Z.json",
+    "rsvps": "rsvps-2025-10-17T18-10-37-297Z.json"
+  }
+}

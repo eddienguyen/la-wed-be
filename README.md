@@ -196,7 +196,8 @@ curl http://localhost:3000/api/health/database
 
 1. **Story #33**: Implement Guest CRUD API endpoints
 2. **Story #34**: Setup image processing service
-3. **Story #35**: Build admin panel frontend
+3. **Story #35**: Build admin panel frontend (guest list, rsvp)
+4. Send notification (mail/sms) to host about new rsvp sent
 
 ## 🛠️ Technology Stack
 

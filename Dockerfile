@@ -8,6 +8,17 @@ WORKDIR /usr/src/app
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
+# Build-time arguments for versioning
+ARG GIT_COMMIT_HASH=unknown
+ARG GIT_BRANCH=unknown
+ARG BUILD_TIMESTAMP=unknown
+
+# Set environment variables for runtime access
+ENV GIT_COMMIT_HASH=${GIT_COMMIT_HASH}
+ENV GIT_BRANCH=${GIT_BRANCH}
+ENV BUILD_TIMESTAMP=${BUILD_TIMESTAMP}
+ENV DEPLOYED_AT=${BUILD_TIMESTAMP}
+
 # Copy package files
 COPY package*.json ./
 

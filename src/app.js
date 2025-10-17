@@ -11,6 +11,9 @@ import dotenv from 'dotenv'
 import corsMiddleware from './middleware/cors.js'
 import healthRoutes from './routes/health.js'
 import guestRoutes from './routes/guests.js'
+import rsvpRoutes from './routes/rsvp.js'
+import migrateRoutes from './routes/migrate.js'
+import versionRoutes from './routes/version.js'
 import { disconnectDatabase } from './utils/database.js'
 
 // Load environment variables
@@ -21,7 +24,10 @@ const PORT = process.env.PORT || 3000
 
 // Debug logging - BEFORE all middleware
 app.use((req, res, next) => {
-  console.log('🔍 INCOMING REQUEST:', req.method, req.url, req.headers.origin || 'no-origin')
+  console.group('INCOMING REQUEST:', req.method, req.url, req.headers.origin || 'no-origin')
+  console.log('User-Agent:', req.headers['user-agent'])
+  console.log('Content-Type:', req.headers['content-type'])
+  console.groupEnd();
   next()
 })
 
@@ -38,9 +44,22 @@ if (process.env.NODE_ENV === 'development') {
   })
 }
 
+// Response logging middleware for debugging
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  res.send = function (data) {
+    console.log('✅ RESPONSE:', res.statusCode, 'for', req.method, req.url);
+    return originalSend.call(this, data);
+  };
+  next();
+});
+
 // Routes
 app.use('/api/health', healthRoutes)
 app.use('/api/guests', guestRoutes)
+app.use('/api/rsvp', rsvpRoutes)
+app.use('/api/migrate', migrateRoutes)
+app.use('/api/version', versionRoutes)
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -100,7 +119,7 @@ process.on('SIGINT', async () => {
 })
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Wedding Guest Management API running on port ${PORT}`)
   console.log(`📋 Health check: http://localhost:${PORT}/api/health`)
   console.log(`🗄️ Database health: http://localhost:${PORT}/api/health/database`)

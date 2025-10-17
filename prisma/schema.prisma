@@ -18,10 +18,31 @@ model Guest {
   updatedAt               DateTime @updatedAt @map("updated_at")
   invitationImageFrontUrl String?  @map("invitation_image_front_url") @db.VarChar(255)
   invitationImageMainUrl  String?  @map("invitation_image_main_url") @db.VarChar(255)
+  rsvps                   RSVP[]
 
   @@index([venue])
   @@index([createdAt])
   @@map("guests")
+}
+
+model RSVP {
+  id         String   @id @default(uuid())
+  guestId    String?  @map("guest_id")
+  name       String   @db.VarChar(100)
+  guestCount Int      @map("guest_count")
+  willAttend Boolean  @map("will_attend")
+  wishes     String?  @db.VarChar(500)
+  venue      Venue
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  guest Guest? @relation(fields: [guestId], references: [id], onDelete: Restrict)
+
+  @@index([guestId])
+  @@index([venue])
+  @@index([createdAt])
+  @@index([willAttend])
+  @@map("rsvps")
 }
 
 enum Venue {
