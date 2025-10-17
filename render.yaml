@@ -1,5 +1,12 @@
 # Render Blueprint Configuration
-# This file explicitly defines how Render should build and deploy the service
+# 
+# ⚠️ DEPRECATED - This file is scheduled for removal after Fly.io migration
+# 
+# This file was used for Render.com deployment.
+# After successful migration to Fly.io, this file should be deleted.
+# See MIGRATION-GUIDE-FLYIO.md for migration instructions.
+# See ARCHIVE-SUPABASE-RENDER-SETUP.md for historical reference.
+#
 
 services:
   - type: web
