@@ -23,8 +23,8 @@ RUN npx prisma generate
 # Copy application source code
 COPY src ./src
 
-# Expose port (Render will set PORT env variable)
-EXPOSE 3000
+# Expose port (Fly.io uses PORT env variable, defaults to 8080)
+EXPOSE 8080
 
 # Start the application
 CMD ["node", "src/app.js"]

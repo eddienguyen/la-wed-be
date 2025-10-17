@@ -1,0 +1,71 @@
+# Fly.io Application Configuration
+# Learn more: https://fly.io/docs/reference/configuration/
+
+app = "la-wed-backend"
+primary_region = "sin"  # Singapore region for optimal latency
+
+# Build configuration
+[build]
+  dockerfile = "Dockerfile"
+
+# Environment variables (non-sensitive)
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+  LOG_LEVEL = "info"
+
+# HTTP service configuration
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+  auto_stop_machines = false  # Keep machines running (no cold starts)
+  auto_start_machines = true
+  min_machines_running = 1     # Always keep at least 1 machine running
+
+  # HTTP checks for health monitoring
+  [[services.http_checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/api/health"
+    protocol = "http"
+    
+    # Expected response
+    [[services.http_checks.headers]]
+      Content-Type = "application/json"
+
+  # Port configuration
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  # Connection limits
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 1000
+    soft_limit = 800
+
+# Resource allocation
+[processes]
+  app = "node src/app.js"
+
+# VM resources
+[vm]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256
+
+# Deployment configuration
+[deploy]
+  strategy = "rolling"
+
+# Metrics and monitoring
+[metrics]
+  port = 9091
+  path = "/metrics"

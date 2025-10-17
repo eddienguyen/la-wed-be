@@ -8,8 +8,8 @@ Backend API for the personalized wedding invitation system.
 
 - Node.js 18+ installed
 - npm or yarn package manager
-- Supabase account (free tier)
-- Render.com account for deployment (free tier)
+- PostgreSQL database (Fly.io recommended)
+- Fly.io account for deployment (https://fly.io)
 
 ### Setup Instructions
 
@@ -20,11 +20,9 @@ Backend API for the personalized wedding invitation system.
 cp .env.example .env
 ```
 
-2. Create a Supabase project:
-   - Go to https://supabase.com
-   - Create a new project
-   - Go to Settings > Database
-   - Copy the connection string and update `.env`
+2. Setup PostgreSQL database:
+   - For Fly.io deployment: Follow [Fly.io Migration Guide](MIGRATION-GUIDE-FLYIO.md)
+   - For local development: Use Docker Compose (see below)
 
 #### 2. Install Dependencies
 
@@ -96,41 +94,84 @@ CREATE INDEX idx_guests_created_at ON guests(created_at);
 |----------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/db` |
 | `DIRECT_URL` | Direct PostgreSQL connection | Same as DATABASE_URL |
-| `PORT` | Server port | `3000` |
-| `NODE_ENV` | Environment | `development` |
+| `PORT` | Server port | `8080` (Fly.io) or `3000` (local) |
+| `NODE_ENV` | Environment | `development` or `production` |
 | `CORS_ORIGIN` | Frontend URL for CORS | `http://localhost:5173` |
-| `LOG_LEVEL` | Logging level | `debug` |
+| `FRONTEND_URL` | Frontend URL for invitations | `https://ngocquanwd.com` |
+| `LOG_LEVEL` | Logging level | `debug` or `info` |
 
 ## 🚀 Deployment
 
-### Render.com Deployment
+### Fly.io Deployment (Recommended)
 
-For complete deployment instructions, see [Render Deployment Guide](../docs/feature/32-render-deployment-guide.md).
+For complete deployment instructions, see [Fly.io Migration Guide](MIGRATION-GUIDE-FLYIO.md).
 
-**Quick Steps:**
-1. Create Render.com account
-2. Create new "Web Service"
-3. Connect GitHub repository (la-wed-be)
-4. Configure:
-   - Root Directory: `backend`
-   - Build Command: `npm install && npm run prisma:generate`
-   - Start Command: `npm start`
-5. Add environment variables (see guide)
-6. Deploy
+**Quick Deploy:**
+```bash
+# Install flyctl CLI
+brew install flyctl  # macOS
+# or curl -L https://fly.io/install.sh | sh  # Linux
+
+# Login
+flyctl auth login
+
+# Complete setup (database + app)
+./scripts/deploy-flyio.sh setup
+
+# Deploy application
+./scripts/deploy-flyio.sh deploy
+
+# Run migrations
+./scripts/deploy-flyio.sh migrate
+```
+
+**Benefits over previous setup:**
+- ✅ No cold starts (always-on)
+- ✅ Better reliability (no instance failures)
+- ✅ Integrated database with automatic backups
+- ✅ Better monitoring and logging
+- ✅ Geographic distribution support
+
+### Local Development with Docker
+
+```bash
+# Start PostgreSQL database
+docker-compose up -d db
+
+# Update .env with local database URL
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/wedding_event
+DIRECT_URL=postgres://postgres:postgres@localhost:5432/wedding_event
+
+# Run migrations
+npm run prisma:migrate
+
+# Start development server
+npm run dev
+```
 
 ### Environment Variables for Production
+
+See [.env.example](.env.example) for all available variables.
+
+**Required:**
 ```env
 NODE_ENV=production
-DATABASE_URL=postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
-DIRECT_URL=postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
-PORT=3000
+DATABASE_URL=postgres://postgres:[PASSWORD]@[DB_HOST]:5432/[DB_NAME]
+DIRECT_URL=postgres://postgres:[PASSWORD]@[DB_HOST]:5432/[DB_NAME]
+PORT=8080
 CORS_ORIGIN=https://ngocquanwd.com
+FRONTEND_URL=https://ngocquanwd.com
 LOG_LEVEL=info
 ```
 
-**Post-Deployment:**
-- Run migrations via Render Shell: `npm run prisma:migrate:deploy`
-- Test health endpoint: `https://[your-app].onrender.com/api/health`
+**Optional (Cloudflare R2 for images):**
+```env
+R2_ENDPOINT=https://[ACCOUNT_ID].r2.cloudflarestorage.com
+R2_ACCESS_KEY_ID=[YOUR_ACCESS_KEY]
+R2_SECRET_ACCESS_KEY=[YOUR_SECRET_KEY]
+R2_BUCKET_NAME=[YOUR_BUCKET_NAME]
+R2_PUBLIC_URL=https://images.ngocquanwd.com
+```
 
 ## 🧪 Testing
 
@@ -175,9 +216,9 @@ curl http://localhost:3000/api/health/database
 ### Common Issues
 
 1. **Database Connection Failed**
-   - Verify Supabase credentials in `.env`
-   - Check database URL format
-   - Ensure database is running
+   - Verify database URL in `.env` or Fly.io secrets
+   - Check database is running: `flyctl status --app la-wed-database`
+   - Ensure database is accessible
 
 2. **Prisma Client Not Generated**
    - Run `npm run prisma:generate`
@@ -185,31 +226,38 @@ curl http://localhost:3000/api/health/database
    - Verify database connection
 
 3. **CORS Errors**
-   - Update `CORS_ORIGIN` in `.env`
+   - Update `CORS_ORIGIN` in `.env` or Fly.io secrets
    - Check frontend URL matches
 
 4. **Port Already in Use**
    - Change `PORT` in `.env`
-   - Kill existing processes on port
+   - Kill existing processes on port: `lsof -ti:3000 | xargs kill`
+
+## 📚 Documentation
+
+- [Fly.io Migration Guide](MIGRATION-GUIDE-FLYIO.md) - Complete migration instructions
+- [Archive: Supabase/Render.com Setup](ARCHIVE-SUPABASE-RENDER-SETUP.md) - Historical reference
 
 ## 📚 Next Steps
 
-1. **Story #33**: Implement Guest CRUD API endpoints
-2. **Story #34**: Setup image processing service
-3. **Story #35**: Build admin panel frontend
+1. **Complete Migration**: Follow [Fly.io Migration Guide](MIGRATION-GUIDE-FLYIO.md)
+2. **Setup Monitoring**: Configure alerts and metrics
+3. **Implement Features**: Continue with guest management features
+4. **Optimize Performance**: Fine-tune database and app resources
 
 ## 🛠️ Technology Stack
 
 - **Framework**: Express.js
-- **Database**: PostgreSQL (Supabase)
+- **Database**: PostgreSQL (Fly.io)
 - **ORM**: Prisma
 - **Language**: JavaScript (ES Modules)
-- **Hosting**: Render.com
+- **Hosting**: Fly.io
+- **Image Storage**: Cloudflare R2 (optional)
 - **Development**: Nodemon
 
 ## 📖 Learning Resources
 
 - [Express.js Documentation](https://expressjs.com/)
 - [Prisma Documentation](https://www.prisma.io/docs/)
-- [Supabase Documentation](https://supabase.com/docs)
-- [Render Documentation](https://render.com/docs)
+- [Fly.io Documentation](https://fly.io/docs/)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
