@@ -14,6 +14,7 @@ import guestRoutes from './routes/guests.js'
 import rsvpRoutes from './routes/rsvp.js'
 import migrateRoutes from './routes/migrate.js'
 import versionRoutes from './routes/version.js'
+import adminRoutes from './routes/admin/index.js'
 import { disconnectDatabase } from './utils/database.js'
 
 // Load environment variables
@@ -60,6 +61,7 @@ app.use('/api/guests', guestRoutes)
 app.use('/api/rsvp', rsvpRoutes)
 app.use('/api/migrate', migrateRoutes)
 app.use('/api/version', versionRoutes)
+app.use('/api/admin', adminRoutes)
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -67,13 +69,29 @@ app.get('/', (req, res) => {
     success: true,
     data: {
       message: 'Wedding Guest Management API',
-      version: '1.0.0',
+      version: '1.1.0',
       timestamp: new Date().toISOString(),
       endpoints: {
         health: '/api/health',
         databaseHealth: '/api/health/database',
-        guests: '/api/guests',
-        guestById: '/api/guests/:id'
+        version: '/api/version',
+        guests: {
+          list: '/api/guests',
+          byId: '/api/guests/:id',
+          create: 'POST /api/guests'
+        },
+        rsvp: {
+          list: '/api/rsvp',
+          byId: '/api/rsvp/:id',
+          create: 'POST /api/rsvp',
+          update: 'PATCH /api/rsvp/:id',
+          delete: 'DELETE /api/rsvp/:id',
+          byVenue: '/api/rsvp/venue/:venue',
+          stats: '/api/rsvp/stats/:venue'
+        },
+        admin: {
+          stats: '/api/admin/stats'
+        }
       }
     }
   })

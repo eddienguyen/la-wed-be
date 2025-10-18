@@ -131,3 +131,61 @@ export const rsvpRateLimitConfig = {
   // Skip rate limiting for failed requests to prevent lockout
   skipFailedRequests: false
 }
+
+/**
+ * Validation rules for RSVP update (PATCH)
+ * 
+ * All fields are optional for partial updates.
+ */
+export const validateUpdateRSVP = [
+  // Name - optional, 2-100 characters if provided
+  body('name')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Tên phải từ 2-100 ký tự')
+    .matches(/^[a-zA-ZÀ-ỹ\s'-]+$/)
+    .withMessage('Tên chỉ được chứa chữ cái, dấu cách, dấu gạch ngang và dấu nháy đơn'),
+
+  // GuestCount - optional integer between 1-10
+  body('guestCount')
+    .optional()
+    .isInt({ min: 1, max: 10 })
+    .withMessage('Số lượng khách phải từ 1-10'),
+
+  // WillAttend - optional boolean
+  body('willAttend')
+    .optional()
+    .isBoolean()
+    .withMessage('Xác nhận tham dự phải là true hoặc false'),
+
+  // Wishes - optional, 0-500 characters if provided
+  body('wishes')
+    .optional()
+    .isLength({ max: 500 })
+    .withMessage('Lời chúc không được vượt quá 500 ký tự')
+    .customSanitizer(sanitizeWishes),
+
+  // Venue - optional, must be hue or hanoi
+  body('venue')
+    .optional()
+    .isIn(['hue', 'hanoi'])
+    .withMessage('Địa điểm phải là "hue" hoặc "hanoi"')
+]
+
+/**
+ * Rate limiting configuration for admin update operations
+ * 
+ * More lenient than public RSVP submissions.
+ */
+export const adminRateLimitConfig = {
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Allow more requests for admin operations
+  message: {
+    success: false,
+    error: 'Too many admin requests, please try again later',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+}
