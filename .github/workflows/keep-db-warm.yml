@@ -26,23 +26,25 @@ jobs:
       
       - name: Ping Supabase Database
         env:
-          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          # Use Transaction Mode (port 6543) with pgbouncer to avoid connection limits
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL_POOLED }}
         run: |
           echo "🔄 Pinging Supabase database to keep it warm..."
           
           # Execute a simple health check query
-          psql "$DATABASE_URL" -c "SELECT 
-            1 as health_check, 
-            NOW() as timestamp,
-            current_database() as database,
-            version() as postgres_version;"
-          
-          # Query guest count to ensure tables are accessible
-          psql "$DATABASE_URL" -c "SELECT 
-            COUNT(*) as total_guests,
-            COUNT(CASE WHEN venue = 'hue' THEN 1 END) as hue_guests,
-            COUNT(CASE WHEN venue = 'hanoi' THEN 1 END) as hanoi_guests
-          FROM \"Guest\";"
+          # Using single transaction to work with pgbouncer
+          psql "$DATABASE_URL" <<EOF
+            SELECT 
+              1 as health_check, 
+              NOW() as timestamp,
+              current_database() as database;
+            
+            SELECT 
+              COUNT(*) as total_guests,
+              COUNT(CASE WHEN venue = 'hue' THEN 1 END) as hue_guests,
+              COUNT(CASE WHEN venue = 'hanoi' THEN 1 END) as hanoi_guests
+            FROM "Guest";
+          EOF
           
           echo "✅ Database is warm and responding"
           echo "📊 Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
