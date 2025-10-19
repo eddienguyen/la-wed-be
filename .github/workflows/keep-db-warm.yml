@@ -1,0 +1,59 @@
+name: Keep Supabase Database Warm
+
+# This workflow prevents the Supabase free tier database from pausing due to inactivity
+# by pinging it every 4 hours with a simple health check query
+
+on:
+  schedule:
+    # Run every 4 hours (6 times per day)
+    # Times: 00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC
+    - cron: '0 */4 * * *'
+  
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  ping-database:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout (optional, for logging)
+        uses: actions/checkout@v4
+      
+      - name: Install PostgreSQL Client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      
+      - name: Ping Supabase Database
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          echo "🔄 Pinging Supabase database to keep it warm..."
+          
+          # Execute a simple health check query
+          psql "$DATABASE_URL" -c "SELECT 
+            1 as health_check, 
+            NOW() as timestamp,
+            current_database() as database,
+            version() as postgres_version;"
+          
+          # Query guest count to ensure tables are accessible
+          psql "$DATABASE_URL" -c "SELECT 
+            COUNT(*) as total_guests,
+            COUNT(CASE WHEN venue = 'hue' THEN 1 END) as hue_guests,
+            COUNT(CASE WHEN venue = 'hanoi' THEN 1 END) as hanoi_guests
+          FROM \"Guest\";"
+          
+          echo "✅ Database is warm and responding"
+          echo "📊 Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+      
+      - name: Report Success
+        if: success()
+        run: |
+          echo "::notice::Database keep-warm ping successful at $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+      
+      - name: Report Failure
+        if: failure()
+        run: |
+          echo "::error::Database keep-warm ping failed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          exit 1
