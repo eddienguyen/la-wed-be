@@ -8,14 +8,15 @@
 
 import express from 'express'
 import statsRoutes from './stats.js'
+import guestsRoutes from './guests.js'
 
 const router = express.Router()
 
 // Register admin sub-routes
 router.use('/stats', statsRoutes)
+router.use('/guests', guestsRoutes)
 
 // Future admin routes can be added here:
-// router.use('/guests', guestAdminRoutes)
 // router.use('/rsvps', rsvpAdminRoutes)
 // router.use('/auth', authRoutes)
 
