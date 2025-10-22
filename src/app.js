@@ -14,6 +14,7 @@ import guestRoutes from './routes/guests.js'
 import rsvpRoutes from './routes/rsvp.js'
 import migrateRoutes from './routes/migrate.js'
 import versionRoutes from './routes/version.js'
+import wishesRoutes from './routes/wishes.js'
 import adminRoutes from './routes/admin/index.js'
 import { disconnectDatabase } from './utils/database.js'
 
@@ -61,6 +62,7 @@ app.use('/api/guests', guestRoutes)
 app.use('/api/rsvp', rsvpRoutes)
 app.use('/api/migrate', migrateRoutes)
 app.use('/api/version', versionRoutes)
+app.use('/api/wishes', wishesRoutes)
 app.use('/api/admin', adminRoutes)
 
 // Root endpoint
@@ -88,6 +90,10 @@ app.get('/', (req, res) => {
           delete: 'DELETE /api/rsvp/:id',
           byVenue: '/api/rsvp/venue/:venue',
           stats: '/api/rsvp/stats/:venue'
+        },
+        wishes: {
+          list: 'GET /api/wishes',
+          description: 'Get paginated wishes with optional venue filter'
         },
         admin: {
           stats: '/api/admin/stats'

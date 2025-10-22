@@ -444,3 +444,92 @@ export const getAdminStats = async () => {
     lastUpdated: new Date().toISOString()
   }
 }
+
+/**
+ * Get paginated wishes data with optional venue filter
+ * 
+ * Retrieves RSVPs that have wishes, with support for filtering by venue
+ * and pagination. Wishes content is sanitized for XSS protection.
+ * 
+ * @param {Object} options - Query options
+ * @param {number} [options.limit=10] - Number of wishes per page (1-50)
+ * @param {number} [options.page=1] - Page number (1-based)
+ * @param {string} [options.venue] - Optional venue filter (hue or hanoi)
+ * @returns {Promise<Object>} Paginated wishes data with metadata
+ * 
+ * @example
+ * // Get first 10 wishes
+ * const data = await getWishesData({ limit: 10, page: 1 })
+ * 
+ * @example
+ * // Get Hue venue wishes
+ * const data = await getWishesData({ limit: 10, page: 1, venue: 'hue' })
+ */
+export const getWishesData = async ({ limit = 10, page = 1, venue = null }) => {
+  // Build where clause
+  const where = {
+    AND: [
+      {
+        wishes: {
+          not: null
+        }
+      },
+      {
+        wishes: {
+          not: ''
+        }
+      }
+    ]
+  }
+
+  // Add venue filter if provided
+  if (venue) {
+    where.venue = venue
+  }
+
+  // Calculate pagination
+  const skip = (page - 1) * limit
+
+  // Execute queries in parallel
+  const [wishes, totalCount] = await Promise.all([
+    prisma.rSVP.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        wishes: true,
+        venue: true,
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      skip,
+      take: limit
+    }),
+    prisma.rSVP.count({ where })
+  ])
+
+  // Calculate pagination metadata
+  const totalPages = Math.ceil(totalCount / limit)
+  const hasNextPage = page < totalPages
+  const hasPreviousPage = page > 1
+
+  return {
+    wishes: wishes.map(wish => ({
+      id: wish.id,
+      name: wish.name,
+      wishes: wish.wishes,
+      venue: wish.venue,
+      createdAt: wish.createdAt
+    })),
+    pagination: {
+      currentPage: page,
+      totalPages,
+      totalCount,
+      limit,
+      hasNextPage,
+      hasPreviousPage
+    }
+  }
+}
