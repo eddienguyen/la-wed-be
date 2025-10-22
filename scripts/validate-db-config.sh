@@ -31,10 +31,8 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-# Source .env file
-set -a
-source .env
-set +a
+# Parse .env file properly (handles URLs with special characters)
+export $(grep -v '^#' .env | grep -v '^$' | xargs)
 
 HAS_ERRORS=0
 HAS_WARNINGS=0
