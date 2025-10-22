@@ -94,12 +94,15 @@ CREATE INDEX idx_guests_created_at ON guests(created_at);
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/db` |
-| `DIRECT_URL` | Direct PostgreSQL connection | Same as DATABASE_URL |
+| `DATABASE_URL` | PostgreSQL pooler connection (port 6543) | `postgresql://user:pass@host.pooler.supabase.com:6543/db?pgbouncer=true&connection_limit=1` |
+| `DIRECT_URL` | Direct PostgreSQL connection for migrations (port 5432) | `postgresql://user:pass@host.pooler.supabase.com:5432/db` |
 | `PORT` | Server port | `3000` |
 | `NODE_ENV` | Environment | `development` |
 | `CORS_ORIGIN` | Frontend URL for CORS | `http://localhost:5173` |
 | `LOG_LEVEL` | Logging level | `debug` |
+
+> ⚠️ **Important**: For Supabase databases, always use port **6543** with `pgbouncer=true` for `DATABASE_URL`. 
+> See [Database Connection Guide](docs/DATABASE-CONNECTION-GUIDE.md) for details.
 
 ## 🚀 Deployment
 
@@ -213,4 +216,44 @@ curl http://localhost:3000/api/health/database
 - [Express.js Documentation](https://expressjs.com/)
 - [Prisma Documentation](https://www.prisma.io/docs/)
 - [Supabase Documentation](https://supabase.com/docs)
-- [Render Documentation](https://render.com/docs)
+- [Fly.io Documentation](https://fly.io/docs)
+
+## 📚 Project Documentation
+
+### Database & Connection
+- **[Database Connection Guide](docs/DATABASE-CONNECTION-GUIDE.md)** - Complete troubleshooting guide for P1001 errors
+- **[Database Connection Checklist](docs/DATABASE-CONNECTION-CHECKLIST.md)** - Daily/weekly maintenance tasks
+- **[Resolution Summary](docs/DATABASE-CONNECTION-RESOLUTION-SUMMARY.md)** - How P1001 error was fixed
+
+### Deployment
+- **[Render Deployment Guide](../docs/feature/32-render-deployment-guide.md)** - Original deployment guide
+- **Production URL**: https://ngocquan-wedding-api.fly.dev
+
+### Validation Scripts
+- `npm run validate:db` - Validate database configuration
+- `bash scripts/validate-flyio-secrets.sh` - Validate production secrets
+- `bash scripts/fix-flyio-db.sh` - Quick fix for connection issues
+
+## 🐛 Troubleshooting
+
+### P1001: Can't reach database server
+
+If you encounter this error:
+
+1. Run validation: `npm run validate:db`
+2. Check the guide: [docs/DATABASE-CONNECTION-GUIDE.md](docs/DATABASE-CONNECTION-GUIDE.md)
+3. Verify you're using port **6543** (not 5432) in DATABASE_URL
+4. Ensure `pgbouncer=true` parameter is present
+
+**Quick Fix**:
+```bash
+# For production
+bash scripts/fix-flyio-db.sh
+
+# For local
+# Update .env to use port 6543 with pgbouncer=true
+```
+
+### Other Issues
+
+See [Database Connection Guide](docs/DATABASE-CONNECTION-GUIDE.md) for comprehensive troubleshooting.
