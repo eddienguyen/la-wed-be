@@ -8,6 +8,8 @@
  */
 
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import crypto from 'node:crypto'
+import path from 'node:path'
 
 /**
  * Storage Service Class
@@ -15,8 +17,9 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client
  * Manages Cloudflare R2 storage operations using AWS SDK v3.
  */
 class StorageService {
+  client = null
+
   constructor() {
-    this.client = null
     this.bucketName = process.env.R2_BUCKET_NAME
     this.publicUrl = process.env.R2_PUBLIC_URL
   }
@@ -132,6 +135,88 @@ class StorageService {
       process.env.R2_BUCKET_NAME &&
       process.env.R2_PUBLIC_URL
     )
+  }
+
+  /**
+   * Upload multiple files in batch
+   * 
+   * @param {Array<{buffer: Buffer, key: string, contentType: string}>} files - Array of files to upload
+   * @returns {Promise<Array<string>>} Array of public URLs
+   */
+  async batchUpload(files) {
+    try {
+      const uploadPromises = files.map(file => 
+        this.upload(file.buffer, file.key, file.contentType)
+      )
+      
+      const urls = await Promise.all(uploadPromises)
+      console.log(`✅ Batch uploaded ${files.length} file(s) to R2`)
+      
+      return urls
+    } catch (error) {
+      console.error(`❌ Batch upload failed:`, error.message)
+      throw new Error(`Failed to batch upload files: ${error.message}`)
+    }
+  }
+
+  /**
+   * Delete multiple files in batch
+   * 
+   * @param {string[]} keys - Array of S3 object keys to delete
+   * @returns {Promise<void>}
+   */
+  async batchDelete(keys) {
+    try {
+      const deletePromises = keys.map(key => this.delete(key))
+      await Promise.allSettled(deletePromises)
+      
+      console.log(`✅ Batch deleted ${keys.length} file(s) from R2`)
+    } catch (error) {
+      console.error(`❌ Batch deletion failed:`, error.message)
+      throw new Error(`Failed to batch delete files: ${error.message}`)
+    }
+  }
+
+  /**
+   * Generate gallery media key with date-based folder structure
+   * 
+   * @param {string} mediaType - Media type (images|videos)
+   * @param {string} originalFilename - Original filename
+   * @param {string} size - Size variant (thumbnail|medium|large|original)
+   * @returns {string} S3 key path
+   */
+  generateGalleryKey(mediaType, originalFilename, size = 'original') {
+    const date = new Date()
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    
+    // Generate UUID for unique identification
+    const uuid = crypto.randomUUID()
+    
+    // Get file extension
+    const ext = size === 'original' 
+      ? path.extname(originalFilename)
+      : '.webp'
+    
+    const sizePrefix = size === 'original' ? '' : `-${size}`
+    
+    // Structure: gallery/{type}/{year}/{month}/{day}/{uuid}{-size}.{ext}
+    return `gallery/${mediaType}/${year}/${month}/${day}/${uuid}${sizePrefix}${ext}`
+  }
+
+  /**
+   * Get storage usage statistics (placeholder for future implementation)
+   * 
+   * @returns {Promise<Object>} Storage usage information
+   */
+  async getStorageStats() {
+    // Placeholder for future R2 bucket statistics
+    return {
+      totalFiles: 0,
+      totalSize: 0,
+      message: 'Storage statistics not yet implemented'
+    }
   }
 }
 

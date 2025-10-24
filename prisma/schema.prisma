@@ -49,3 +49,81 @@ enum Venue {
   hue
   hanoi
 }
+
+model Media {
+  id            String      @id @default(uuid())
+  filename      String      @db.VarChar(255)
+  url           String      @db.VarChar(500)
+  thumbnailUrl  String?     @map("thumbnail_url") @db.VarChar(500)
+  type          MediaType
+  category      String      @default("uncategorized") @db.VarChar(50)
+  fileSize      Int         @map("file_size")
+  width         Int?
+  height        Int?
+  displayOrder  Int         @default(0) @map("display_order")
+  isFeatured    Boolean     @default(false) @map("is_featured")
+  uploadedBy    String?     @map("uploaded_by") @db.VarChar(100)
+  dateTaken     DateTime?   @map("date_taken")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@index([displayOrder])
+  @@index([isFeatured])
+  @@index([createdAt])
+  @@map("media")
+}
+
+enum MediaType {
+  image
+  video
+}
+
+model GalleryMedia {
+  // Core identification
+  id                String      @id @default(uuid())
+  filename          String      @db.VarChar(255)
+  
+  // Display metadata
+  title             String?     @db.VarChar(200)
+  caption           String?     @db.Text
+  alt               String      @db.VarChar(300)
+  
+  // Media classification
+  mediaType         MediaType   @map("media_type")
+  category          String      @default("general") @db.VarChar(50)
+  
+  // R2 storage integration
+  r2ObjectKey       String      @map("r2_object_key") @db.VarChar(500)
+  r2Urls            Json        @map("r2_urls")
+  
+  // Display configuration
+  featured          Boolean     @default(false)
+  displayOrder      Int         @default(0) @map("display_order")
+  
+  // Technical metadata
+  metadata          Json
+  
+  // Additional context
+  location          String?     @db.VarChar(200)
+  photographer      String?     @db.VarChar(100)
+  dateTaken         DateTime?   @map("date_taken")
+  
+  // Soft delete
+  deletedAt         DateTime?   @map("deleted_at")
+  
+  // Timestamps
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  
+  // Indexes for performance
+  @@index([category])
+  @@index([featured])
+  @@index([displayOrder])
+  @@index([dateTaken])
+  @@index([mediaType])
+  @@index([deletedAt])
+  @@index([createdAt])
+  
+  @@map("gallery_media")
+}

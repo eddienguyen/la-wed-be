@@ -15,7 +15,9 @@ import rsvpRoutes from './routes/rsvp.js'
 import migrateRoutes from './routes/migrate.js'
 import versionRoutes from './routes/version.js'
 import wishesRoutes from './routes/wishes.js'
+import galleryRoutes from './routes/gallery.js'
 import adminRoutes from './routes/admin/index.js'
+import publicRoutes from './routes/public/index.js'
 import { disconnectDatabase } from './utils/database.js'
 
 // Load environment variables
@@ -63,7 +65,9 @@ app.use('/api/rsvp', rsvpRoutes)
 app.use('/api/migrate', migrateRoutes)
 app.use('/api/version', versionRoutes)
 app.use('/api/wishes', wishesRoutes)
+app.use('/api/gallery', galleryRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/public', publicRoutes)
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -94,6 +98,15 @@ app.get('/', (req, res) => {
         wishes: {
           list: 'GET /api/wishes',
           description: 'Get paginated wishes with optional venue filter'
+        },
+        gallery: {
+          list: 'GET /api/gallery',
+          featured: 'GET /api/gallery/featured',
+          byId: 'GET /api/gallery/:id',
+          upload: 'POST /api/gallery (admin)',
+          update: 'PUT /api/gallery/:id (admin)',
+          delete: 'DELETE /api/gallery/:id (admin)',
+          reorder: 'PUT /api/gallery/reorder (admin)'
         },
         admin: {
           stats: '/api/admin/stats'
