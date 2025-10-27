@@ -19,7 +19,7 @@ const getAllowedOrigins = () => {
     return envOrigin ? envOrigin.split(',').map(origin => origin.trim()) : ['https://ngocquanwd.com'];
   }
   
-  // In development, allow common dev origins
+  // In development, allow common dev origins + network IP for mobile testing
   return [
     'http://localhost:5173',
     'http://localhost:5174',
@@ -27,6 +27,7 @@ const getAllowedOrigins = () => {
     'http://127.0.0.1:5173',
     'http://127.0.0.1:5174',
     'http://127.0.0.1:3000',
+    'http://192.168.0.101:5173', // Network IP for mobile testing
     ...(envOrigin ? envOrigin.split(',').map(origin => origin.trim()) : [])
   ];
 };
