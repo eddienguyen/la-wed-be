@@ -18,7 +18,6 @@ import wishesRoutes from './routes/wishes.js'
 import galleryRoutes from './routes/gallery.js'
 import adminRoutes from './routes/admin/index.js'
 import publicRoutes from './routes/public/index.js'
-import proxyRoutes from './routes/proxy.js'
 import { disconnectDatabase } from './utils/database.js'
 
 // Load environment variables
@@ -69,7 +68,6 @@ app.use('/api/wishes', wishesRoutes)
 app.use('/api/gallery', galleryRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/public', publicRoutes)
-app.use('/api', proxyRoutes) // Image proxy for CORS workaround
 
 // Root endpoint
 app.get('/', (req, res) => {
