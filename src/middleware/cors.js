@@ -27,7 +27,9 @@ const getAllowedOrigins = () => {
     'http://127.0.0.1:5173',
     'http://127.0.0.1:5174',
     'http://127.0.0.1:3000',
-    'http://192.168.0.101:5173', // Network IP for mobile testing
+    'http://192.168.0.101:5173', // Network IP for mobile testing (HTTP)
+    'https://localhost:5173',     // HTTPS localhost for mobile testing
+    'https://192.168.0.101:5173', // HTTPS network IP for mobile testing (Web Share API)
     ...(envOrigin ? envOrigin.split(',').map(origin => origin.trim()) : [])
   ];
 };

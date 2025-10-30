@@ -18,6 +18,7 @@ import wishesRoutes from './routes/wishes.js'
 import galleryRoutes from './routes/gallery.js'
 import adminRoutes from './routes/admin/index.js'
 import publicRoutes from './routes/public/index.js'
+import proxyRoutes from './routes/proxy.js'
 import { disconnectDatabase } from './utils/database.js'
 
 // Load environment variables
@@ -68,6 +69,7 @@ app.use('/api/wishes', wishesRoutes)
 app.use('/api/gallery', galleryRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/public', publicRoutes)
+app.use('/api', proxyRoutes)
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -142,25 +144,5 @@ app.use((error, req, res, next) => {
   })
 })
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM signal received: closing HTTP server')
-  await disconnectDatabase()
-  process.exit(0)
-})
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT signal received: closing HTTP server')
-  await disconnectDatabase()
-  process.exit(0)
-})
-
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Wedding Guest Management API running on port ${PORT}`)
-  console.log(`📋 Health check: http://localhost:${PORT}/api/health`)
-  console.log(`🗄️ Database health: http://localhost:${PORT}/api/health/database`)
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`)
-})
-
+// Export app without starting server (server.js will handle that for HTTPS)
 export default app
