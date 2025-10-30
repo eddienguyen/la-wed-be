@@ -144,5 +144,28 @@ app.use((error, req, res, next) => {
   })
 })
 
-// Export app without starting server (server.js will handle that for HTTPS)
+// Start HTTP server (default for development - fast performance)
+// For HTTPS testing (Web Share API), use: npm run dev:https
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Wedding Guest Management API running on port ${PORT}`)
+  console.log(`📋 Health check: http://localhost:${PORT}/api/health`)
+  console.log(`🗄️ Database health: http://localhost:${PORT}/api/health/database`)
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`)
+  console.log(`\n💡 For HTTPS (Web Share API testing): npm run dev:https`)
+})
+
+// Graceful shutdown (disconnectDatabase already imported at top)
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM signal received: closing HTTP server')
+  await disconnectDatabase()
+  process.exit(0)
+})
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT signal received: closing HTTP server')
+  await disconnectDatabase()
+  process.exit(0)
+})
+
+// Export app for testing or alternative server setup (like HTTPS in server.js)
 export default app
